@@ -16,16 +16,19 @@ def get_summary():
         
         # Extract the 'url' from the JSON data
         url = data.get('url')
+        wordCount = data.get('wordCount')
 
         # Check if the URL was provided
         if not url:
             return jsonify({'error': 'URL not provided'}), 400
 
         # Create the summary text
-        summary_text = api.get_summary(url)
+        info = api.get_info(url, summary_length=wordCount)
+        # title = info["title"]
+        # summary_text = info["summary"]
 
         # Return a JSON response with the summary
-        return jsonify({'summary': summary_text})
+        return jsonify(info)
 
     except Exception as e:
         # Handle any errors during the request

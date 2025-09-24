@@ -1,12 +1,18 @@
 #hover-tooltip {
-  position: fixed; /* Ensures the tooltip stays in place */
-  background-color: #333;
-  color: white;
+  /* Basic styling from before */
+  position: fixed;
+  background-color: white; /* Change background to white */
+  color: black; /* Change font color to black for contrast */
   padding: 8px 12px;
   border-radius: 5px;
   font-family: sans-serif;
   font-size: 14px;
-  z-index: 10000; /* Ensures the tooltip is on top of other elements */
-  pointer-events: none; /* Prevents the tooltip from blocking clicks */
+  z-index: 10000;
+  pointer-events: none;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  
+  /* New styling for size and scrolling */
+  max-width: 400px; /* Set a maximum width */
+  max-height: 250px; /* Set a maximum height */
+  overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
 }

@@ -3,12 +3,15 @@
   "name": "Hover Summary",
   "version": "1.0",
   "description": "Displays a summary when you hover over a link.",
-  "permissions": [],
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": ["styles.css"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
 }

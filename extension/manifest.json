@@ -1,17 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Hover Summary",
+  "name": "AI Link Summarizer",
   "version": "1.0",
-  "description": "Displays a summary when you hover over a link.",
-  "permissions": ["storage"],
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
-    }
+  "description": "Get a summary of a link on hover using Gemini or OpenAI.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.openai.com/*"
   ],
   "action": {
     "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
   }
 }

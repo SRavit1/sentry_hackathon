@@ -1,113 +1,132 @@
-// A function to create and show the tooltip
-/*async function showTooltip(event, summaryText) {
-  // If a tooltip already exists, remove it to avoid duplicates
-  const existingTooltip = document.getElementById('hover-tooltip');
-  if (existingTooltip) {
-    existingTooltip.remove();
-  }
+// --- UTILITY FUNCTIONS (NO CHANGE) ---
 
-  const tooltip = document.createElement('div');
-  tooltip.id = 'hover-tooltip';
-  tooltip.textContent = summaryText;
-
-  // Position the tooltip near the mouse cursor
-  const mouseX = event.clientX;
-  const mouseY = event.clientY;
-  tooltip.style.left = `${mouseX + 15}px`;
-  tooltip.style.top = `${mouseY + 15}px`;
-
-  document.body.appendChild(tooltip);
-}
-*/
-async function showTooltip(event, contentText, titleText) {
-  titleText = ''
-  // If a tooltip already exists, remove it to avoid duplicates
-  const existingTooltip = document.getElementById('hover-tooltip');
-  if (existingTooltip) {
-    existingTooltip.remove();
-  }
-
-  const tooltip = document.createElement('div');
-  tooltip.id = 'hover-tooltip';
-
-  // Create a title element and a content element
-  const title = document.createElement('div');
-  title.style.fontWeight = 'bold';
-  title.style.marginBottom = '5px';
-  title.textContent = titleText;
-
-  const content = document.createElement('div');
-  content.textContent = contentText;
-
-  // Append title and content to the tooltip
-  if (titleText && titleText.trim() !== '') {
-    tooltip.appendChild(title);
-  }
-  tooltip.appendChild(content);
-
-  // Position the tooltip near the mouse cursor
-  const mouseX = event.clientX;
-  const mouseY = event.clientY;
-  tooltip.style.left = `${mouseX + 15}px`;
-  tooltip.style.top = `${mouseY + 15}px`;
-
-  document.body.appendChild(tooltip);
+// A simple debounce function to limit how often the LLM request is sent
+function debounce(func, delay) {
+    let timeoutId;
+    return function(...args) {
+        let context = this;
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(context, args);
+        }, delay);
+    };
 }
 
-// A function to remove the tooltip
-function hideTooltip() {
-  const tooltip = document.getElementById('hover-tooltip');
-  if (tooltip) {
-    tooltip.remove();
-  }
+// Function to inject and display the summary box
+function showSummary(text, x, y) {
+    let existingBox = document.getElementById('llm-summary-box');
+    if (existingBox) {
+        existingBox.remove();
+    }
+    const summaryBox = document.createElement('div');
+    summaryBox.id = 'llm-summary-box';
+    summaryBox.style.cssText = `
+        position: fixed;
+        top: ${y + 10}px;
+        left: ${x + 10}px;
+        max-width: 300px;
+        padding: 10px;
+        background-color: #333;
+        color: white;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 99999;
+        font-size: 14px;
+        pointer-events: none;
+        word-wrap: break-word; /* Ensure text fits */
+    `;
+    summaryBox.textContent = text;
+    document.body.appendChild(summaryBox);
 }
 
-// Function to handle the mouseenter event
-async function handleMouseEnter(event) {
-  event.preventDefault(); // Prevents default link behavior
+// Function to remove the summary box
+function hideSummary() {
+    const summaryBox = document.getElementById('llm-summary-box');
+    if (summaryBox) {
+        summaryBox.remove();
+    }
+}
 
-  // Get the URL of the link being hovered over
-  const url = event.target.href;
-
-  // The endpoint of your summarization service
-  const summaryApiEndpoint = 'http://127.0.0.1:3000/getSummary';
-
-  try {
+// Debounced function to request the summary from the background script
+const requestSummary = debounce((url, x, y) => {
     // Show a "Loading..." message immediately
-    showTooltip(event, 'Loading summary...', '');
+    showSummary("Loading summary...", x, y);
 
-    chrome.storage.sync.get('summaryWordCount', async function(data) {
-      const wordCount = data.summaryWordCount || 30;
-      
-      // Make the POST request to your summary API
-      const response = await fetch(summaryApiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ url: url, wordCount: wordCount })
-      });
+    // Send the link URL to the background service worker
+    chrome.runtime.sendMessage({
+        action: "summarizeLink",
+        url: url,
+        x: x,
+        y: y
+    }, (response) => {
+        // Check for runtime error (e.g., API key missing)
+        if (chrome.runtime.lastError) {
+             console.error("Runtime error:", chrome.runtime.lastError.message);
+             // Show a generic error or silent fail
+             hideSummary();
+             return;
+        }
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data_ = await response.json();
-      const summary = data_.summary; // Assuming the API returns a JSON object with a 'summary' key
-      const title = data_.title; 
-
-      // Update the tooltip with the actual summary
-      showTooltip(event, summary, title);
+        if (response && response.summary) {
+            // Redisplay the summary with the content
+            showSummary(response.summary, response.x, response.y);
+        } else if (response && response.error) {
+            // Display the specific error from the background script
+            showSummary(`Error: ${response.error}`, response.x, response.y);
+        }
     });
+}, 500); // 500ms delay before triggering the request
 
-  } catch (error) {
-    console.error('Error fetching summary:', error);
-    showTooltip(event, 'Failed to get summary.', 'Error');
-  }
+// --- EVENT HANDLERS ---
+
+let mouseOverListener;
+let mouseOutListener;
+
+// Main logic to register/unregister listeners based on state
+function initializeLinkSummarizer(isEnabled) {
+    // Always clean up existing listeners first
+    if (mouseOverListener) {
+        document.removeEventListener('mouseover', mouseOverListener);
+    }
+    if (mouseOutListener) {
+        document.removeEventListener('mouseout', mouseOutListener);
+    }
+    
+    // Hide any visible summary box if the feature is being disabled
+    hideSummary();
+
+    if (isEnabled) {
+        // Register new listeners only if the feature is enabled
+        mouseOverListener = (event) => {
+            const target = event.target.closest('a');
+            if (target && target.href && target.href.startsWith('http')) {
+                requestSummary(target.href, event.clientX, event.clientY);
+            }
+        };
+
+        mouseOutListener = (event) => {
+            if (event.target.closest('a')) {
+                // A slight delay prevents flickering when moving between adjacent links
+                setTimeout(hideSummary, 100);
+            }
+        };
+
+        document.addEventListener('mouseover', mouseOverListener);
+        document.addEventListener('mouseout', mouseOutListener);
+    }
 }
 
-// Add event listeners to all links on the page
-document.querySelectorAll('a').forEach(link => {
-  link.addEventListener('mouseenter', handleMouseEnter);
-  link.addEventListener('mouseleave', hideTooltip);
+// Initial check when the content script loads
+chrome.storage.local.get(['isFeatureEnabled'], (items) => {
+    // Default the feature to ON (true) if it's not set
+    const isEnabled = items.isFeatureEnabled !== false; 
+    initializeLinkSummarizer(isEnabled);
+});
+
+// Listener to re-initialize the feature when settings are changed in the popup
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.isFeatureEnabled) {
+        // Re-run the initialization with the new state
+        initializeLinkSummarizer(changes.isFeatureEnabled.newValue);
+    }
 });

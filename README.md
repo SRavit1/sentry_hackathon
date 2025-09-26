@@ -4,6 +4,8 @@ Note: This project is (almost) entirely "vibe coded" using Gemini with some mino
 
 A simple and powerful Chrome extension that leverages the power of Large Language Models (LLMs)—**Google Gemini** or **OpenAI's ChatGPT**—to generate instant summaries when you hover over any hyperlink on a webpage.
 
+![screenshot](Screenshot.png "Extension screenshot")
+
 ## About 💡
 
 This extension provides on-demand summarization to save you time and help you quickly determine if a link is worth clicking.

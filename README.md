@@ -20,6 +20,10 @@ This extension provides on-demand summarization to save you time and help you qu
 
 ## How to Use 🛠️
 
+### 0. Generate API Keys
+
+1. Generate API keys for Gemini and/or OpenAI to use to summarize links. Link to generate Gemini key: https://aistudio.google.com/app/api-keys. Link to generate OpenAI key: https://platform.openai.com/api-keys.
+
 ### 1. Installation
 
 Since this is a custom-built extension, you must install it via **Developer Mode** in Chrome.

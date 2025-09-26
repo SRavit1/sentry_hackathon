@@ -13,7 +13,6 @@
         button:hover { background-color: #45a049; }
         #wordCountDisplay { text-align: right; font-weight: normal; margin-top: -5px; margin-bottom: 5px;}
         .setting-group { margin-bottom: 15px; padding: 10px; border: 1px solid #eee; border-radius: 5px;}
-
         /* Style for the Power Button/Toggle */
         .power-section { 
             display: flex; 
@@ -45,20 +44,25 @@
     </style>
 </head>
 <body>
-    <h2>LLM Summarizer Settings</h2>
+    <h2>LLM Summarizer Settings ⚙️</h2>
 
     <div class="power-section">
         <strong>Feature Status:</strong>
         <button id="powerButton" class="enabled">ON</button>
     </div>
+
     <div class="setting-group">
-        <label for="llmChoice">Choose LLM:</label>
+        <label for="llmChoice">Choose LLM Platform:</label>
         <select id="llmChoice">
-            <option value="gemini">Google Gemini (Requires Gemini API Key)</option>
-            <option value="openai">OpenAI (Requires OpenAI API Key)</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="openai">OpenAI</option>
         </select>
     </div>
-
+    
+    <div class="setting-group">
+        <label for="modelChoice">Select Model:</label>
+        <select id="modelChoice"></select> </div>
+    
     <div class="setting-group" id="gemini-settings">
         <label for="geminiApiKey">Gemini API Key:</label>
         <input type="text" id="geminiApiKey" placeholder="Enter your key (starts with AIza...)">

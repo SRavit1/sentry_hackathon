@@ -1,11 +1,12 @@
 // Constants for API endpoints and default settings
-const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"; // Endpoint will be built dynamically
 const OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = "gpt-3.5-turbo";
 
-const DEFAULT_MAX_WORDS = 100;
-const DEFAULT_MAX_TOKENS = 150; // Corresponds to the default 100 words
+const DEFAULT_WORD_COUNT = 100; 
+const DEFAULT_MAX_TOKENS = 150; 
 const DEFAULT_LLM = 'gemini';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -17,21 +18,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function fetchSummary(url, x, y, sendResponse) {
     // 1. Retrieve all necessary settings from Chrome storage
-    const settings = await chrome.storage.local.get(['llmChoice', 'geminiApiKey', 'openaiApiKey', 'maxTokens', 'wordCount']);
+    const settings = await chrome.storage.local.get(['llmChoice', 'modelId', 'geminiApiKey', 'openaiApiKey', 'maxTokens', 'wordCount']);
     
     const llmChoice = settings.llmChoice || DEFAULT_LLM;
-    //const maxTokens = settings.maxTokens || DEFAULT_MAX_TOKENS;
-    const wordCount = settings.wordCount || DEFAULT_MAX_WORDS;
+    const maxTokens = settings.maxTokens || DEFAULT_MAX_TOKENS;
+    const wordCount = settings.wordCount || DEFAULT_WORD_COUNT;
     
     let apiKey = '';
     let errorPrefix = '';
+    let modelId = '';
 
     if (llmChoice === 'gemini') {
         apiKey = settings.geminiApiKey;
         errorPrefix = 'Gemini';
+        modelId = settings.modelId || DEFAULT_GEMINI_MODEL;
     } else if (llmChoice === 'openai') {
         apiKey = settings.openaiApiKey;
         errorPrefix = 'OpenAI';
+        modelId = settings.modelId || DEFAULT_OPENAI_MODEL;
     }
 
     if (!apiKey) {
@@ -41,7 +45,7 @@ async function fetchSummary(url, x, y, sendResponse) {
     }
 
     // 2. Prepare the prompt (same for both models)
-    const prompt = `Provide a summary of the content found at this URL. The summary should be approximately ${wordCount} words long. URL: ${url}`;
+    const prompt = `Provide a concise summary of the content found at this URL. The summary should be approximately ${wordCount} words long. URL: ${url}`;
     
     try {
         let fetchConfig = {};
@@ -49,7 +53,9 @@ async function fetchSummary(url, x, y, sendResponse) {
 
         if (llmChoice === 'gemini') {
             // GEMINI API Configuration
-            const GEMINI_API_ENDPOINT = GEMINI_API_BASE + apiKey;
+            // Endpoint is built using the selected model ID
+            const GEMINI_API_ENDPOINT = `${GEMINI_API_BASE}${modelId}:generateContent?key=${apiKey}`;
+            
             fetchConfig = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -58,7 +64,7 @@ async function fetchSummary(url, x, y, sendResponse) {
                         { role: "user", parts: [{ text: prompt }] }
                     ],
                     // config: {
-                    //     maxOutputTokens: maxTokens, // Uses converted token count
+                    //     maxOutputTokens: maxTokens, 
                     //     temperature: 0.1 
                     // }
                 })
@@ -81,12 +87,12 @@ async function fetchSummary(url, x, y, sendResponse) {
                     'Authorization': `Bearer ${apiKey}` 
                 },
                 body: JSON.stringify({
-                    model: OPENAI_MODEL,
+                    model: modelId, // <-- Uses selected model ID
                     messages: [
                         { "role": "system", "content": "You are a helpful assistant that summarizes links." },
                         { "role": "user", "content": prompt }
                     ],
-                    max_tokens: maxTokens, // Uses converted token count
+                    max_tokens: maxTokens, 
                     temperature: 0.1
                 })
             };

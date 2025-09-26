@@ -1,5 +1,7 @@
 # Link Summarizer Chrome Extension 🔗✨
 
+Note: This project is (almost) entirely "vibe coded" using Gemini with some minor edits, feel free to check the conversation here: https://g.co/gemini/share/70fdee27559a.
+
 A simple and powerful Chrome extension that leverages the power of Large Language Models (LLMs)—**Google Gemini** or **OpenAI's ChatGPT**—to generate instant summaries when you hover over any hyperlink on a webpage.
 
 ## About 💡
